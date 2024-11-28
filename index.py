@@ -1,8 +1,16 @@
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse, parse_qs, urlencode
 import time
 
-def scrape_website(url, max_pages=1000000):
+def normalize_url(url):
+    """Normalize the URL by removing unwanted query parameters."""
+    parsed_url = urlparse(url)
+    # Keep only the scheme, netloc, and path
+    normalized = parsed_url._replace(query='')
+    return normalized.geturl()
+
+def scrape_website(url, max_pages=111000000):
     scraped_data = []
     visited_urls = set()
     pages_to_visit = [url]
@@ -27,11 +35,10 @@ def scrape_website(url, max_pages=1000000):
             
             # Find all links on the page
             for link in soup.find_all('a', href=True):
-                full_link = link['href']
-                if full_link.startswith('/'):
-                    full_link = url + full_link  # Make it absolute
-                if url in full_link and full_link not in visited_urls and len(pages_to_visit) < max_pages:
-                    pages_to_visit.append(full_link)
+                full_link = urljoin(current_url, link['href'])  # Make it absolute using urljoin
+                normalized_link = normalize_url(full_link)  # Normalize the URL
+                if normalized_link not in visited_urls and len(pages_to_visit) < max_pages:
+                    pages_to_visit.append(normalized_link)
 
         except Exception as e:
             print(f"Error scraping {current_url}: {e}")
